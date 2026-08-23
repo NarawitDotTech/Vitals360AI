@@ -20,7 +20,13 @@ const API_URL = (
   process.env.SKINDETECT_API_URL ?? "https://skindiseasesdetect-2.onrender.com"
 ).replace(/\/$/, "");
 
+// Vercel: run on the Node.js runtime and allow up to 60s so we can wait out
+// the upstream service's free-tier cold start (~60-90s when asleep).
+// Without this, Vercel kills the function at its default timeout and the
+// client sees a failed request every time the detection service is cold.
+export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 type Lang = "en" | "th";
 
@@ -132,15 +138,31 @@ export async function POST(req: NextRequest) {
     const apiKey = process.env.SKINDETECT_API_KEY;
     if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
 
-    let upstream: Response;
-    try {
-      upstream = await fetch(`${API_URL}/detect`, {
-        method: "POST",
-        headers,
-        body: form,
-        signal: AbortSignal.timeout(60_000), // free-tier instances can cold-start
-      });
-    } catch {
+    let upstream: Response | null = null;
+    let lastError: unknown = null;
+
+    // The free-tier detection service sleeps when idle and can take 60-90s
+    // to wake up. Try up to 3 times; a short first attempt doubles as a
+    // "wake-up ping" so later attempts land on a warm instance.
+    const timeoutsMs = [15_000, 45_000, 45_000];
+    for (const timeoutMs of timeoutsMs) {
+      try {
+        upstream = await fetch(`${API_URL}/detect`, {
+          method: "POST",
+          headers,
+          body: form,
+          signal: AbortSignal.timeout(timeoutMs),
+        });
+        break;
+      } catch (err) {
+        lastError = err;
+        if (err instanceof Error && err.name === "AbortError") continue;
+        break; // non-timeout network error — don't retry
+      }
+    }
+
+    if (!upstream) {
+      console.error("[/api/classify/derm] upstream unreachable:", lastError);
       return NextResponse.json(
         {
           error:

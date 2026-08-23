@@ -1,11 +1,20 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Loader2, Camera } from "lucide-react";
+import { Loader2, RotateCcw, AlertTriangle } from "lucide-react";
 import { CameraCapture } from "@/components/derm/CameraCapture";
 import { ClassificationResult } from "@/components/derm/ClassificationResult";
 import { HealthAdvice } from "@/components/derm/HealthAdvice";
 import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/Card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/Alert";
 import { analyzeABCDE } from "@/lib/ml/abcde";
 import { saveScan } from "@/lib/storage";
 import { useLanguage } from "@/lib/LanguageContext";
@@ -131,51 +140,62 @@ export default function DermPage() {
   };
 
   return (
-    <div className="min-h-screen bg-cream py-12">
-      <div className="max-w-4xl mx-auto px-6">
+    <div className="min-h-screen bg-background py-12">
+      <div className="container max-w-4xl">
         {/* Header */}
-        <div className="mb-8">
-          <div className="inline-block bg-terracotta-tint text-terracotta text-sm font-medium px-4 py-1.5 rounded-pill mb-4">
-            {t.derm.title}
-          </div>
-          <h1 className="text-4xl font-serif mb-4">
-            <em className="text-terracotta not-italic">AI</em> {t.derm.title}
+        <header className="mb-10">
+          <Badge className="mb-4">{t.derm.title}</Badge>
+          <h1 className="font-serif text-4xl font-semibold tracking-tight">
+            <span className="text-primary">AI</span> {t.derm.title}
           </h1>
-          <p className="text-lg text-muted">
-            {t.derm.subtitle}
-          </p>
-        </div>
+          <p className="mt-3 text-lg text-muted">{t.derm.subtitle}</p>
+        </header>
 
-        {/* Error Message */}
+        {/* Error */}
         {error && (
-          <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-6 mb-8">
-            <p className="text-red-800">
-              <strong>{t.common.error}:</strong> {error}
-            </p>
-          </div>
+          <Alert variant="destructive" className="mb-8">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>{t.common.error}</AlertTitle>
+            <AlertDescription>
+              {error}{" "}
+              <button className="underline underline-offset-2" onClick={() => setError(null)}>
+                Dismiss
+              </button>
+            </AlertDescription>
+          </Alert>
         )}
 
-        {/* Capture Step */}
+        {/* Capture */}
         {step === 'capture' && (
-          <div className="bg-white border-2 border-border rounded-2xl p-8">
-            <CameraCapture onCapture={handleCapture} />
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Capture or upload a photo</CardTitle>
+              <CardDescription>
+                Use a clear, well-lit photo of the affected skin area.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <CameraCapture onCapture={handleCapture} />
+            </CardContent>
+          </Card>
         )}
 
-        {/* Analyzing Step */}
+        {/* Analyzing */}
         {step === 'analyzing' && (
-          <div className="bg-white border-2 border-border rounded-2xl p-12">
-            <div className="text-center">
-              <Loader2 className="w-12 h-12 text-terracotta animate-spin mx-auto mb-4" />
-              <h3 className="text-xl font-serif mb-2">{t.derm.analyzing}</h3>
-              <p className="text-muted">
-                {language === 'th' ? 'กำลังวิเคราะห์ภาพด้วย AI และวิเคราะห์ตามหลัก ABCDE' : 'Running AI classification and ABCDE heuristic analysis'}
+          <Card>
+            <CardContent className="flex flex-col items-center px-6 py-16 text-center">
+              <Loader2 className="mb-5 h-12 w-12 animate-spin text-primary" />
+              <h3 className="font-serif text-xl font-semibold">{t.derm.analyzing}</h3>
+              <p className="mt-2 max-w-sm text-muted">
+                {language === 'th'
+                  ? 'กำลังวิเคราะห์ภาพด้วย AI และวิเคราะห์ตามหลัก ABCDE'
+                  : 'Running AI classification and ABCDE heuristic analysis. The first analysis after inactivity may take up to a minute while the detection service wakes up.'}
               </p>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         )}
 
-        {/* Results Step */}
+        {/* Results */}
         {step === 'results' && classification && abcdeAnalysis && imageData && (
           <div className="space-y-6">
             <ClassificationResult
@@ -189,9 +209,9 @@ export default function DermPage() {
               classification={classification.label}
             />
 
-            <div className="flex justify-center pt-4">
+            <div className="flex justify-center pt-2 pb-8">
               <Button onClick={handleNewScan} size="lg">
-                <Camera className="w-5 h-5 mr-2" />
+                <RotateCcw className="w-5 h-5" />
                 {t.derm.newScan}
               </Button>
             </div>

@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
+import { Activity, Globe, Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
-import { Activity, Globe } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useTranslation } from "@/lib/i18n";
 
@@ -11,6 +13,7 @@ export function Navbar() {
   const pathname = usePathname();
   const { language, setLanguage } = useLanguage();
   const t = useTranslation(language);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const navLinks = [
     { href: "/", label: t.nav.home },
@@ -21,64 +24,105 @@ export function Navbar() {
   ];
 
   return (
-    <nav className="sticky top-0 z-50 bg-cream/95 backdrop-blur-sm border-b border-border">
-      <div className="max-w-7xl mx-auto px-6 py-4">
-        <div className="flex items-center justify-between">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 group">
-            <div className="w-10 h-10 bg-terracotta rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
-              <Activity className="w-6 h-6 text-white" />
-            </div>
-            <span className="text-xl font-serif">
-              Vitals360 <em className="text-terracotta not-italic">AI</em>
-            </span>
-          </Link>
+    <header className="sticky top-0 z-50 w-full border-b border-border/80 bg-card/80 backdrop-blur-lg">
+      <div className="container flex h-16 items-center justify-between">
+        {/* Logo */}
+        <Link href="/" className="flex items-center gap-2.5 group" onClick={() => setMobileOpen(false)}>
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm transition-transform group-hover:scale-105">
+            <Activity className="h-5 w-5" />
+          </div>
+          <span className="font-serif text-lg font-semibold tracking-tight">
+            Vitals360 <span className="text-primary">AI</span>
+          </span>
+        </Link>
 
-          {/* Navigation Links + Language Switcher */}
-          <div className="flex items-center gap-1">
+        {/* Desktop navigation */}
+        <nav className="hidden items-center gap-1 md:flex">
+          {navLinks.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className={cn(
+                "rounded-full px-4 py-2 text-sm font-medium transition-colors",
+                pathname === link.href
+                  ? "bg-secondary text-secondary-foreground"
+                  : "text-muted hover:bg-accent hover:text-accent-foreground"
+              )}
+            >
+              {link.label}
+            </Link>
+          ))}
+        </nav>
+
+        <div className="hidden items-center gap-1 rounded-full border bg-background p-1 md:flex">
+          <Globe className="ml-2 h-3.5 w-3.5 text-muted" />
+          {(["en", "th"] as const).map((lang) => (
+            <button
+              key={lang}
+              onClick={() => setLanguage(lang)}
+              className={cn(
+                "rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide transition-colors",
+                language === lang
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted hover:text-primary"
+              )}
+            >
+              {lang}
+            </button>
+          ))}
+        </div>
+
+        {/* Mobile menu button */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="md:hidden"
+          onClick={() => setMobileOpen((v) => !v)}
+          aria-label="Toggle menu"
+        >
+          {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        </Button>
+      </div>
+
+      {/* Mobile dropdown */}
+      {mobileOpen && (
+        <div className="border-t border-border bg-card md:hidden">
+          <nav className="container flex flex-col gap-1 py-4">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
+                onClick={() => setMobileOpen(false)}
                 className={cn(
-                  "px-4 py-2 rounded-pill text-sm font-medium transition-all",
+                  "rounded-xl px-4 py-2.5 text-sm font-medium transition-colors",
                   pathname === link.href
-                    ? "bg-terracotta text-white"
-                    : "text-muted hover:text-terracotta hover:bg-terracotta-tint"
+                    ? "bg-secondary text-secondary-foreground"
+                    : "text-muted hover:bg-accent hover:text-accent-foreground"
                 )}
               >
                 {link.label}
               </Link>
             ))}
-
-            {/* Language Switcher */}
-            <div className="ml-4 flex items-center gap-1 bg-surface rounded-pill p-1">
-              <button
-                onClick={() => setLanguage('en')}
-                className={cn(
-                  "px-3 py-1.5 rounded-pill text-xs font-medium transition-all",
-                  language === 'en'
-                    ? "bg-terracotta text-white"
-                    : "text-muted hover:text-terracotta"
-                )}
-              >
-                EN
-              </button>
-              <button
-                onClick={() => setLanguage('th')}
-                className={cn(
-                  "px-3 py-1.5 rounded-pill text-xs font-medium transition-all",
-                  language === 'th'
-                    ? "bg-terracotta text-white"
-                    : "text-muted hover:text-terracotta"
-                )}
-              >
-                TH
-              </button>
+            <div className="mt-2 flex items-center gap-1 self-start rounded-full border bg-background p-1">
+              <Globe className="ml-2 h-3.5 w-3.5 text-muted" />
+              {(["en", "th"] as const).map((lang) => (
+                <button
+                  key={lang}
+                  onClick={() => setLanguage(lang)}
+                  className={cn(
+                    "rounded-full px-3 py-1 text-xs font-semibold uppercase transition-colors",
+                    language === lang
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted"
+                  )}
+                >
+                  {lang}
+                </button>
+              ))}
             </div>
-          </div>
+          </nav>
         </div>
-      </div>
-    </nav>
+      )}
+    </header>
   );
 }
