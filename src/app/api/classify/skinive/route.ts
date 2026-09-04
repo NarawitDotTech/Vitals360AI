@@ -79,7 +79,7 @@ async function validateImage(imageBuffer: Buffer, mime: string): Promise<Skinive
   }
 
   const form = new FormData();
-  form.append("img", new Blob([imageBuffer], { type: mime }), "image.jpg");
+  form.append("img", new Blob([new Uint8Array(imageBuffer)], { type: mime }), "image.jpg");
 
   const response = await fetch(`${SKINIVE_API_URL}/validate`, {
     method: "POST",
@@ -110,7 +110,7 @@ async function predictDisease(
   }
 
   const form = new FormData();
-  form.append("img", new Blob([imageBuffer], { type: mime }), "image.jpg");
+  form.append("img", new Blob([new Uint8Array(imageBuffer)], { type: mime }), "image.jpg");
 
   const headers: Record<string, string> = {
     "Authorization": API_TOKEN,

@@ -461,7 +461,7 @@ export async function classifyImage(imageData: ImageData): Promise<Classificatio
   const predictions = classifyByFeatures(features);
 
   // Sort and get top results
-  const sorted = predictions
+  const sorted = Array.from(predictions)
     .map((confidence, index) => ({
       ...SKIN_CONDITIONS[CONDITION_IDS[index]],
       confidence
