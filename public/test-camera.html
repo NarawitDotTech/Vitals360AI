@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camera Test</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        video {
+            width: 100%;
+            max-width: 640px;
+            background: black;
+            border: 2px solid #333;
+            border-radius: 8px;
+        }
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            cursor: pointer;
+            background: #C4612F;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #A94E22;
+        }
+        #error {
+            color: red;
+            margin: 10px 0;
+        }
+        #status {
+            color: green;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Camera Test Page</h1>
+    <p>This page tests if your camera works with the getUserMedia API.</p>
+
+    <div>
+        <button onclick="startCamera()">Start Camera</button>
+        <button onclick="stopCamera()">Stop Camera</button>
+    </div>
+
+    <div id="error"></div>
+    <div id="status"></div>
+
+    <video id="video" autoplay playsinline muted></video>
+
+    <div id="info"></div>
+
+    <script>
+        let stream = null;
+        const video = document.getElementById('video');
+        const errorDiv = document.getElementById('error');
+        const statusDiv = document.getElementById('status');
+        const infoDiv = document.getElementById('info');
+
+        function log(message, isError = false) {
+            console.log(message);
+            if (isError) {
+                errorDiv.textContent = message;
+                statusDiv.textContent = '';
+            } else {
+                statusDiv.textContent = message;
+                errorDiv.textContent = '';
+            }
+        }
+
+        async function startCamera() {
+            log('Requesting camera access...');
+
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 },
+                        facingMode: 'user'
+                    }
+                });
+
+                log('Camera access granted! Attaching stream...');
+                video.srcObject = stream;
+
+                // Wait for metadata
+                await new Promise((resolve) => {
+                    if (video.readyState >= video.HAVE_METADATA) {
+                        resolve();
+                    } else {
+                        video.onloadedmetadata = resolve;
+                    }
+                });
+
+                await video.play();
+                log('Video playing! ✓');
+
+                infoDiv.innerHTML = `
+                    <h3>Stream Info:</h3>
+                    <p>Video dimensions: ${video.videoWidth} x ${video.videoHeight}</p>
+                    <p>Video ready state: ${video.readyState}</p>
+                    <p>Video paused: ${video.paused}</p>
+                    <p>Tracks: ${stream.getTracks().length}</p>
+                `;
+
+            } catch (err) {
+                log(`Error: ${err.name} - ${err.message}`, true);
+                console.error(err);
+            }
+        }
+
+        function stopCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                video.srcObject = null;
+                stream = null;
+                log('Camera stopped');
+                infoDiv.innerHTML = '';
+            }
+        }
+
+        // Check browser support
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            log('getUserMedia is not supported in this browser', true);
+        } else {
+            log('Browser supports getUserMedia ✓');
+        }
+    </script>
+</body>
+</html>

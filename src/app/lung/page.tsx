@@ -44,30 +44,50 @@ export default function LungScreeningPage() {
     setAudioBlob(audio);
     setStep('analyzing');
 
-    // Simulate AI analysis with mock data
-    setTimeout(() => {
-      // Mock result - in production, this would call actual ML model
-      const mockResult: LungResult = {
-        condition: 'Normal Breathing',
-        conditionTh: 'การหายใจปกติ',
-        confidence: 0.87,
+    try {
+      // Call real audio analysis API
+      const formData = new FormData();
+      formData.append('audio', audio, 'breathing.webm');
+
+      console.log('[LungPage] Analyzing audio with AI...');
+      const response = await fetch('/api/analyze/lung', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Analysis failed');
+      }
+
+      const result = await response.json();
+      console.log('[LungPage] Analysis result:', result);
+
+      setResult(result);
+      setStep('results');
+    } catch (error) {
+      console.error('[LungPage] Analysis error:', error);
+      // Fallback to safe default
+      const fallbackResult: LungResult = {
+        condition: 'Analysis Error',
+        conditionTh: 'ข้อผิดพลาดในการวิเคราะห์',
+        confidence: 0,
         risk: 'low',
         breathing: {
-          rate: 16,
-          pattern: 'Regular',
-          patternTh: 'สม่ำเสมอ'
+          rate: 0,
+          pattern: 'Unable to analyze',
+          patternTh: 'ไม่สามารถวิเคราะห์ได้'
         },
         audio: {
-          quality: 'Clear breath sounds',
-          qualityTh: 'เสียงการหายใจชัดเจน',
+          quality: 'Analysis failed. Please try again.',
+          qualityTh: 'การวิเคราะห์ล้มเหลว กรุณาลองใหม่',
           abnormalities: [],
           abnormalitiesTh: []
         }
       };
-
-      setResult(mockResult);
+      setResult(fallbackResult);
       setStep('results');
-    }, 3000);
+    }
   };
 
   const handleCancelRecording = () => {
@@ -94,8 +114,8 @@ export default function LungScreeningPage() {
           </h1>
           <p className="text-lg text-muted">
             {language === 'th'
-              ? 'ใช้กล้องและไมโครโฟนเพื่อตรวจหาโรคปอดด้วย AI'
-              : 'Use webcam and microphone to detect lung diseases with AI'}
+              ? 'ใช้กล้องและไมโครโฟนเพื่อวิเคราะห์เสียงการหายใจและตรวจจับความผิดปกติด้วย AI'
+              : 'Use webcam and microphone to analyze breathing sounds and detect abnormalities with AI'}
           </p>
         </div>
 

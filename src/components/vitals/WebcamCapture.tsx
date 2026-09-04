@@ -125,10 +125,25 @@ export function WebcamCapture({
     }
 
     streamRef.current = mediaStream;
+    rgbDataRef.current = [];
+
+    // Set capturing state first so React renders the video element
+    setIsCapturing(true);
+    setTimeLeft(duration);
+
+    // Wait for React to render the video element
+    await new Promise(resolve => setTimeout(resolve, 100));
 
     const video = videoRef.current;
-    if (!video) return;
+    if (!video) {
+      console.error('Video element not found after render');
+      setError('Failed to initialize video element');
+      stopStream();
+      setIsCapturing(false);
+      return;
+    }
 
+    console.log('Video element found, attaching stream');
     video.srcObject = mediaStream;
 
     // Wait for the video to be ready (handles both fresh loads and
@@ -143,7 +158,9 @@ export function WebcamCapture({
 
     try {
       await video.play();
-    } catch {
+      console.log('Video playback started successfully');
+    } catch (err) {
+      console.error('Failed to play video:', err);
       /* muted autoplay should always be permitted */
     }
 
@@ -164,10 +181,6 @@ export function WebcamCapture({
       audioRecorder.start(100);
       mediaRecorderRef.current = audioRecorder;
     }
-
-    rgbDataRef.current = [];
-    setIsCapturing(true);
-    setTimeLeft(duration);
 
     const fps = 30;
     const frameInterval = 1000 / fps;
@@ -246,7 +259,7 @@ export function WebcamCapture({
 
       {isCapturing && (
         <div className="space-y-4">
-          <div className="relative aspect-video overflow-hidden rounded-2xl border bg-foreground">
+          <div className="relative aspect-video overflow-hidden rounded-2xl border bg-black">
             <video
               ref={videoRef}
               autoPlay

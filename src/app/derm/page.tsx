@@ -19,8 +19,18 @@ import { analyzeABCDE } from "@/lib/ml/abcde";
 import { saveScan } from "@/lib/storage";
 import { useLanguage } from "@/lib/LanguageContext";
 import { useTranslation } from "@/lib/i18n";
-import type { DermClassificationResult } from "@/app/api/classify/derm/route";
 import type { ABCDEAnalysis } from "@/lib/ml/abcde";
+
+export interface DermClassificationResult {
+  classId: string;
+  label: string;
+  confidence: number;
+  risk: 'low' | 'medium' | 'high';
+  overview: string;
+  symptoms: string[];
+  causes: string[];
+  treatments: string[];
+}
 
 export default function DermPage() {
   const [step, setStep] = useState<'capture' | 'analyzing' | 'results'>('capture');
@@ -30,37 +40,6 @@ export default function DermPage() {
   const [error, setError] = useState<string | null>(null);
   const { language } = useLanguage();
   const t = useTranslation(language);
-
-  // Re-fetch classification when language changes (only if we have results)
-  useEffect(() => {
-    if (step === 'results' && imageData) {
-      const reFetch = async () => {
-        try {
-          const response = await fetch('/api/classify/derm', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              image: `data:image/jpeg;base64,${imageData}`,
-              lang: language,
-            }),
-          });
-
-          if (!response.ok) {
-            throw new Error('Re-fetch failed');
-          }
-
-          const result = await response.json();
-          setClassification(result);
-        } catch (err) {
-          console.error('Re-fetch error:', err);
-        }
-      };
-
-      reFetch();
-    }
-  }, [language, imageData, step]);
 
   const handleCapture = async (base64Image: string) => {
     setImageData(base64Image);
@@ -91,7 +70,8 @@ export default function DermPage() {
       const abcde = analyzeABCDE(imageData);
       setAbcdeAnalysis(abcde);
 
-      // Call classification API with language parameter
+      // Call classification API (fallback to working derm API)
+      console.log('[DermPage] Calling classification API...');
       const response = await fetch('/api/classify/derm', {
         method: 'POST',
         headers: {
@@ -188,8 +168,8 @@ export default function DermPage() {
               <h3 className="font-serif text-xl font-semibold">{t.derm.analyzing}</h3>
               <p className="mt-2 max-w-sm text-muted">
                 {language === 'th'
-                  ? 'กำลังวิเคราะห์ภาพด้วย AI และวิเคราะห์ตามหลัก ABCDE'
-                  : 'Running AI classification and ABCDE heuristic analysis. The first analysis after inactivity may take up to a minute while the detection service wakes up.'}
+                  ? 'กำลังวิเคราะห์ภาพด้วย AI จริงจาก Hugging Face และวิเคราะห์ตามหลัก ABCDE'
+                  : 'Analyzing with real AI model from Hugging Face + ABCDE heuristics. First analysis may take 20 seconds while the model loads.'}
               </p>
             </CardContent>
           </Card>
